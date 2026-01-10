@@ -12,7 +12,7 @@
   
   <title>Senior-Easy - Aplikacja dla Seniorów</title>
   
-  <link rel="manifest" href="manifest.json" />
+  <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -262,40 +262,104 @@
       );
     };
 
-    useEffect(() => {
-      setTimeout(() => setIsLoading(false), 1000);
-
-      const savedMeds = localStorage.getItem('medications');
-      const savedContacts = localStorage.getItem('familyContacts');
-      const savedServices = localStorage.getItem('localServices');
-      const savedEmergencySettings = localStorage.getItem('emergencySettings');
-      
-      setMedications(savedMeds ? JSON.parse(savedMeds) : [
-        {id:1,name:'Acard',time:'08:00',days:[0,1,2,3,4,5,6],lastTaken:null},
-        {id:2,name:'Metformin',time:'12:00',days:[0,1,2,3,4,5,6],lastTaken:null},
-        {id:3,name:'Amlozek',time:'20:00',days:[0,1,2,3,4,5,6],lastTaken:null}
-      ]);
-      setFamilyContacts(savedContacts ? JSON.parse(savedContacts) : [
-        {id:1,name:'Anna (córka)',phone:'+48123456789',avatar:'👩',app:'whatsapp'},
-        {id:2,name:'Piotr (syn)',phone:'+48987654321',avatar:'👨',app:'viber'},
-        {id:3,name:'Dr. Kowalski',phone:'+48555123456',avatar:'👨‍⚕️',app:''}
-      ]);
-      setLocalServices(savedServices ? JSON.parse(savedServices) : [
-        {id:1,name:'Transport Medyczny',phone:'800123456',icon:'🚑'},
-        {id:2,name:'Pomoc Domowa',phone:'800654321',icon:'🏠'},
-        {id:3,name:'Apteka z Dowozem',phone:'800789012',icon:'💊'}
-      ]);
-      
-      if (savedEmergencySettings) {
-        const parsedSettings = JSON.parse(savedEmergencySettings);
-        setEmergencySettings({
-          ...parsedSettings,
-          familyPhones: parsedSettings.familyPhones || [],
-          medicalPhones: parsedSettings.medicalPhones || [],
-          servicesPhones: parsedSettings.servicesPhones || []
+    // NAPRAWIONA FUNKCJA - załaduj dane z localStorage przed innymi operacjami
+    const loadDataFromStorage = () => {
+      try {
+        // Sprawdź czy dane istnieją w localStorage
+        const savedMeds = localStorage.getItem('seniorEasy_medications');
+        const savedContacts = localStorage.getItem('seniorEasy_familyContacts');
+        const savedServices = localStorage.getItem('seniorEasy_localServices');
+        const savedEmergencySettings = localStorage.getItem('seniorEasy_emergencySettings');
+        const savedNotifications = localStorage.getItem('seniorEasy_notifications');
+        const savedCareMode = localStorage.getItem('seniorEasy_careMode');
+        
+        console.log('Ładowanie danych z localStorage:', {
+          meds: savedMeds ? JSON.parse(savedMeds).length : 0,
+          contacts: savedContacts ? JSON.parse(savedContacts).length : 0,
+          services: savedServices ? JSON.parse(savedServices).length : 0
         });
+        
+        // Ustaw dane z localStorage lub domyślne wartości
+        if (savedMeds) {
+          setMedications(JSON.parse(savedMeds));
+        } else {
+          // Domyślne leki tylko jeśli nie ma zapisanych
+          setMedications([
+            {id:1,name:'Acard',time:'08:00',days:[0,1,2,3,4,5,6],lastTaken:null},
+            {id:2,name:'Metformin',time:'12:00',days:[0,1,2,3,4,5,6],lastTaken:null},
+            {id:3,name:'Amlozek',time:'20:00',days:[0,1,2,3,4,5,6],lastTaken:null}
+          ]);
+        }
+        
+        if (savedContacts) {
+          setFamilyContacts(JSON.parse(savedContacts));
+        } else {
+          // Domyślne kontakty tylko jeśli nie ma zapisanych
+          setFamilyContacts([
+            {id:1,name:'Anna (córka)',phone:'+48123456789',avatar:'👩',app:'whatsapp'},
+            {id:2,name:'Piotr (syn)',phone:'+48987654321',avatar:'👨',app:'viber'},
+            {id:3,name:'Dr. Kowalski',phone:'+48555123456',avatar:'👨‍⚕️',app:''}
+          ]);
+        }
+        
+        if (savedServices) {
+          setLocalServices(JSON.parse(savedServices));
+        } else {
+          // Domyślne usługi tylko jeśli nie ma zapisanych
+          setLocalServices([
+            {id:1,name:'Transport Medyczny',phone:'800123456',icon:'🚑'},
+            {id:2,name:'Pomoc Domowa',phone:'800654321',icon:'🏠'},
+            {id:3,name:'Apteka z Dowozem',phone:'800789012',icon:'💊'}
+          ]);
+        }
+        
+        if (savedEmergencySettings) {
+          const parsedSettings = JSON.parse(savedEmergencySettings);
+          setEmergencySettings({
+            ...parsedSettings,
+            familyPhones: parsedSettings.familyPhones || [],
+            medicalPhones: parsedSettings.medicalPhones || ['112', '999'],
+            servicesPhones: parsedSettings.servicesPhones || ['997', '998']
+          });
+        }
+        
+        if (savedNotifications) {
+          setNotifications(JSON.parse(savedNotifications));
+        }
+        
+        if (savedCareMode !== null) {
+          setCareMode(savedCareMode === 'true');
+        }
+        
+      } catch (error) {
+        console.error('Błąd ładowania danych z localStorage:', error);
+        // W przypadku błędu ustaw domyślne wartości
+        setMedications([
+          {id:1,name:'Acard',time:'08:00',days:[0,1,2,3,4,5,6],lastTaken:null},
+          {id:2,name:'Metformin',time:'12:00',days:[0,1,2,3,4,5,6],lastTaken:null},
+          {id:3,name:'Amlozek',time:'20:00',days:[0,1,2,3,4,5,6],lastTaken:null}
+        ]);
+        setFamilyContacts([
+          {id:1,name:'Anna (córka)',phone:'+48123456789',avatar:'👩',app:'whatsapp'},
+          {id:2,name:'Piotr (syn)',phone:'+48987654321',avatar:'👨',app:'viber'},
+          {id:3,name:'Dr. Kowalski',phone:'+48555123456',avatar:'👨‍⚕️',app:''}
+        ]);
+        setLocalServices([
+          {id:1,name:'Transport Medyczny',phone:'800123456',icon:'🚑'},
+          {id:2,name:'Pomoc Domowa',phone:'800654321',icon:'🏠'},
+          {id:3,name:'Apteka z Dowozem',phone:'800789012',icon:'💊'}
+        ]);
       }
+    };
 
+    useEffect(() => {
+      // 1. Najpierw załaduj dane z localStorage
+      loadDataFromStorage();
+      
+      // 2. Potem wyłącz ekran ładowania
+      setTimeout(() => setIsLoading(false), 800);
+
+      // 3. Ustaw przypomnienia o lekach
       const reminderInterval = setInterval(() => {
         checkMedicationReminders();
       }, 60000);
@@ -338,6 +402,40 @@
         clearInterval(weatherInterval);
       };
     }, [userLocation, funFacts.length]);
+
+    // NAPRAWIONE useEffect-y do zapisywania danych
+    useEffect(() => { 
+      if (medications.length > 0) {
+        localStorage.setItem('seniorEasy_medications', JSON.stringify(medications));
+        console.log('Zapisano leki:', medications.length);
+      }
+    }, [medications]);
+    
+    useEffect(() => { 
+      if (familyContacts.length > 0) {
+        localStorage.setItem('seniorEasy_familyContacts', JSON.stringify(familyContacts));
+        console.log('Zapisano kontakty:', familyContacts.length);
+      }
+    }, [familyContacts]);
+    
+    useEffect(() => { 
+      if (localServices.length > 0) {
+        localStorage.setItem('seniorEasy_localServices', JSON.stringify(localServices));
+        console.log('Zapisano usługi:', localServices.length);
+      }
+    }, [localServices]);
+    
+    useEffect(() => { 
+      localStorage.setItem('seniorEasy_emergencySettings', JSON.stringify(emergencySettings));
+    }, [emergencySettings]);
+    
+    useEffect(() => { 
+      localStorage.setItem('seniorEasy_notifications', JSON.stringify(notifications));
+    }, [notifications]);
+    
+    useEffect(() => { 
+      localStorage.setItem('seniorEasy_careMode', careMode.toString());
+    }, [careMode]);
 
     useEffect(() => {
       const handleBeforeInstallPrompt = (e) => { 
@@ -395,11 +493,6 @@
       setIsInstallable(false);
       setShowInstallPrompt(false);
     };
-
-    useEffect(() => { localStorage.setItem('medications', JSON.stringify(medications)); }, [medications]);
-    useEffect(() => { localStorage.setItem('familyContacts', JSON.stringify(familyContacts)); }, [familyContacts]);
-    useEffect(() => { localStorage.setItem('localServices', JSON.stringify(localServices)); }, [localServices]);
-    useEffect(() => { localStorage.setItem('emergencySettings', JSON.stringify(emergencySettings)); }, [emergencySettings]);
 
     const addNotification = text => {
       const newNotif = { id: Date.now(), text, time: new Date().toLocaleTimeString('pl-PL', {hour:'2-digit',minute:'2-digit'}), read: false };
@@ -607,20 +700,28 @@
 
     const addMedication = () => { 
       if (newMedName && newMedTime && newMedDays.length > 0) { 
-        setMedications(prev => [...prev, { 
+        const newMed = { 
           id: Date.now(), 
           name: newMedName, 
           time: newMedTime, 
           days: [...newMedDays],
           lastTaken: null
-        }]); 
+        };
+        setMedications(prev => [...prev, newMed]); 
         setNewMedName(''); 
         setNewMedTime(''); 
         setNewMedDays([]);
+        addNotification(`Dodano nowy lek: ${newMedName}`);
       } 
     };
 
-    const deleteMedication = id => setMedications(prev => prev.filter(med => med.id !== id));
+    const deleteMedication = id => {
+      const medication = medications.find(med => med.id === id);
+      if (medication && confirm(`Czy na pewno chcesz usunąć lek "${medication.name}"?`)) {
+        setMedications(prev => prev.filter(med => med.id !== id));
+        addNotification(`Usunięto lek: ${medication.name}`);
+      }
+    };
     
     const startEditMedication = (medication) => {
       setEditingMedication(medication.id);
@@ -643,6 +744,7 @@
       setNewMedName('');
       setNewMedTime('');
       setNewMedDays([]);
+      addNotification(`Zaktualizowano lek: ${newMedName}`);
     };
 
     const cancelEditMedication = () => {
@@ -674,20 +776,28 @@
 
     const addContact = () => { 
       if (newContactName && newContactPhone) { 
-        setFamilyContacts(prev => [...prev, { 
+        const newContact = { 
           id: Date.now(), 
           name: newContactName, 
           phone: newContactPhone, 
           avatar: '👤', 
           app: newContactApp 
-        }]); 
+        };
+        setFamilyContacts(prev => [...prev, newContact]); 
         setNewContactName(''); 
         setNewContactPhone(''); 
         setNewContactApp(''); 
+        addNotification(`Dodano nowy kontakt: ${newContactName}`);
       } 
     };
     
-    const deleteContact = id => setFamilyContacts(prev => prev.filter(c => c.id !== id));
+    const deleteContact = id => {
+      const contact = familyContacts.find(c => c.id === id);
+      if (contact && confirm(`Czy na pewno chcesz usunąć kontakt "${contact.name}"?`)) {
+        setFamilyContacts(prev => prev.filter(c => c.id !== id));
+        addNotification(`Usunięto kontakt: ${contact.name}`);
+      }
+    };
     
     const startEditContact = contact => { 
       setEditingContact(contact.id); 
@@ -704,6 +814,7 @@
       setNewContactName(''); 
       setNewContactPhone(''); 
       setNewContactApp(''); 
+      addNotification(`Zaktualizowano kontakt: ${newContactName}`);
     };
     
     const cancelEditContact = () => { 
@@ -715,19 +826,27 @@
     
     const addService = () => { 
       if (newServiceName && newServicePhone) { 
-        setLocalServices(prev => [...prev, { 
+        const newService = { 
           id: Date.now(), 
           name: newServiceName, 
           phone: newServicePhone, 
           icon: newServiceIcon || '🏢' 
-        }]); 
+        };
+        setLocalServices(prev => [...prev, newService]); 
         setNewServiceName(''); 
         setNewServicePhone(''); 
         setNewServiceIcon(''); 
+        addNotification(`Dodano nową usługę: ${newServiceName}`);
       } 
     };
     
-    const deleteService = id => setLocalServices(prev => prev.filter(s => s.id !== id));
+    const deleteService = id => {
+      const service = localServices.find(s => s.id === id);
+      if (service && confirm(`Czy na pewno chcesz usunąć usługę "${service.name}"?`)) {
+        setLocalServices(prev => prev.filter(s => s.id !== id));
+        addNotification(`Usunięto usługę: ${service.name}`);
+      }
+    };
     
     const startEditService = service => { 
       setEditingService(service.id); 
@@ -744,6 +863,7 @@
       setNewServiceName(''); 
       setNewServicePhone(''); 
       setNewServiceIcon(''); 
+      addNotification(`Zaktualizowano usługę: ${newServiceName}`);
     };
     
     const cancelEditService = () => { 
@@ -754,12 +874,36 @@
     };
     
     const clearData = () => { 
-      if (confirm('Czy na pewno chcesz wyczyścić wszystkie zapisane dane?')) { 
-        localStorage.clear(); 
+      if (confirm('Czy na pewno chcesz wyczyścić wszystkie zapisane dane? Ta operacja jest nieodwracalna!')) { 
+        // Usuń tylko dane aplikacji, nie cały localStorage
+        localStorage.removeItem('seniorEasy_medications');
+        localStorage.removeItem('seniorEasy_familyContacts');
+        localStorage.removeItem('seniorEasy_localServices');
+        localStorage.removeItem('seniorEasy_emergencySettings');
+        localStorage.removeItem('seniorEasy_notifications');
+        localStorage.removeItem('seniorEasy_careMode');
+        
         setMedications([]); 
         setFamilyContacts([]); 
         setLocalServices([]); 
         setNotifications([]); 
+        setCareMode(true);
+        
+        // Przywróć domyślne ustawienia SOS
+        setEmergencySettings({
+          enabled: true,
+          position: 'bottom-right',
+          size: 70,
+          color: 'red',
+          pulse: true,
+          familyMessage: '🚨 PILNA WIADOMOŚĆ! Potrzebuję pomocy! Proszę o kontakt.',
+          medicalMessage: '🚨 PILNA WIADOMOŚĆ! Potrzebuję pomocy medycznej! Proszę o natychmiastowy kontakt.',
+          servicesMessage: '🚨 PILNA WIADOMOŚĆ! Potrzebuję pomocy! Proszę o kontakt.',
+          familyPhones: [],
+          medicalPhones: ['112', '999'],
+          servicesPhones: ['997', '998']
+        });
+        
         addNotification('Wszystkie dane zostały wyczyszczone');
       } 
     };
@@ -768,12 +912,13 @@
 
     const markAllNotificationsRead = () => {
       setNotifications(prev => prev.map(n => ({...n, read: true})));
+      addNotification('Wszystkie powiadomienia oznaczone jako przeczytane');
     };
 
     // DODANE NOWE KOMPONENTY DO RENDEROWANIA
 
     const renderWeatherWidget = () => {
-      return React.createElement('div', { className: 'bg-gradient-to-r from-blue-400 to-blue-600 text-white p-4 md:p-6 rounded-3xl shadow-xl mb-6' },
+      return React.createElement('div', { className: 'bg-gradient-to-r from-blue-400 to-blue-600 text-white p-4 md:p-6 rounded-3xl shadow-xl mb-4' },
         React.createElement('div', { className: 'flex justify-between items-center mb-4' },
           React.createElement('h3', { className: 'text-2xl md:text-3xl font-bold' }, '🌤️ Pogoda'),
           React.createElement('button', {
@@ -786,13 +931,13 @@
         ),
         
         weatherLoading ? 
-          React.createElement('div', { className: 'text-center py-8' },
+          React.createElement('div', { className: 'text-center py-6' },
             React.createElement('div', { className: 'loading-spinner mx-auto mb-4 border-white' }),
             React.createElement('p', null, 'Pobieram aktualną pogodę...')
           )
         : weather ?
           React.createElement('div', null,
-            React.createElement('div', { className: 'flex items-center justify-between mb-6' },
+            React.createElement('div', { className: 'flex items-center justify-between mb-4' },
               React.createElement('div', null,
                 React.createElement('div', { className: 'text-5xl md:text-6xl font-bold mb-2' }, `${weather.temperature}°C`),
                 React.createElement('div', { className: 'text-xl' }, weather.city),
@@ -804,7 +949,7 @@
               )
             ),
             
-            React.createElement('div', { className: 'bg-white bg-opacity-20 p-4 rounded-2xl mb-4' },
+            React.createElement('div', { className: 'bg-white bg-opacity-20 p-3 rounded-2xl mb-4' },
               React.createElement('div', { className: 'flex justify-between items-center mb-2' },
                 React.createElement('span', null, '💧 Wilgotność'),
                 React.createElement('span', { className: 'font-bold' }, `${weather.humidity}%`)
@@ -813,34 +958,34 @@
             ),
             
             React.createElement('div', null,
-              React.createElement('h4', { className: 'text-xl font-bold mb-3' }, 'Prognoza na 3 dni'),
-              React.createElement('div', { className: 'grid grid-cols-3 gap-3' },
+              React.createElement('h4', { className: 'text-lg font-bold mb-3' }, 'Prognoza na 3 dni'),
+              React.createElement('div', { className: 'grid grid-cols-3 gap-2' },
                 weather.forecast.map((day, index) =>
                   React.createElement('div', {
                     key: index,
-                    className: 'bg-white bg-opacity-20 p-3 rounded-2xl text-center'
+                    className: 'bg-white bg-opacity-20 p-2 rounded-2xl text-center'
                   },
-                    React.createElement('div', { className: 'font-bold mb-1' }, day.day),
-                    React.createElement('div', { className: 'text-3xl mb-1' }, day.icon),
-                    React.createElement('div', { className: 'text-xl font-bold' }, `${day.temp}°C`)
+                    React.createElement('div', { className: 'font-bold mb-1 text-sm' }, day.day),
+                    React.createElement('div', { className: 'text-2xl mb-1' }, day.icon),
+                    React.createElement('div', { className: 'text-lg font-bold' }, `${day.temp}°C`)
                   )
                 )
               )
             )
           )
         :
-          React.createElement('div', { className: 'text-center py-8' },
+          React.createElement('div', { className: 'text-center py-6' },
             React.createElement('p', { className: 'text-xl mb-4' }, 'Nie udało się pobrać pogody'),
             React.createElement('button', {
               onClick: getUserLocation,
-              className: 'bg-white text-blue-600 px-6 py-3 rounded-2xl font-bold'
+              className: 'bg-white text-blue-600 px-4 py-2 rounded-2xl font-bold text-sm'
             }, 'Spróbuj ponownie')
           )
       );
     };
 
     const renderNewsWidget = () => {
-      return React.createElement('div', { className: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 md:p-6 rounded-3xl shadow-xl mb-6' },
+      return React.createElement('div', { className: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 md:p-6 rounded-3xl shadow-xl mb-4' },
         React.createElement('div', { className: 'flex justify-between items-center mb-4' },
           React.createElement('h3', { className: 'text-2xl md:text-3xl font-bold' }, '📰 Wiadomości'),
           React.createElement('button', {
@@ -853,46 +998,46 @@
         ),
         
         newsLoading ?
-          React.createElement('div', { className: 'text-center py-8' },
+          React.createElement('div', { className: 'text-center py-6' },
             React.createElement('div', { className: 'loading-spinner mx-auto mb-4 border-white' }),
             React.createElement('p', null, 'Pobieram najnowsze wiadomości...')
           )
         : news.length > 0 ?
-          React.createElement('div', { className: 'space-y-4' },
+          React.createElement('div', { className: 'space-y-3' },
             news.slice(0, 3).map(item =>
               React.createElement('div', {
                 key: item.id,
                 className: 'news-item'
               },
                 React.createElement('div', { className: 'flex justify-between items-start mb-2' },
-                  React.createElement('span', { className: 'bg-white bg-opacity-30 px-3 py-1 rounded-full text-sm' }, item.category),
-                  React.createElement('span', { className: 'text-sm opacity-80' }, item.time)
+                  React.createElement('span', { className: 'bg-white bg-opacity-30 px-2 py-1 rounded-full text-xs' }, item.category),
+                  React.createElement('span', { className: 'text-xs opacity-80' }, item.time)
                 ),
-                React.createElement('h4', { className: 'text-xl font-bold mb-2' }, item.title),
-                React.createElement('p', { className: 'opacity-90 text-sm' }, item.description),
-                React.createElement('div', { className: 'text-xs opacity-70 mt-2' }, `Źródło: ${item.source}`)
+                React.createElement('h4', { className: 'text-lg font-bold mb-1' }, item.title),
+                React.createElement('p', { className: 'opacity-90 text-xs' }, item.description),
+                React.createElement('div', { className: 'text-xs opacity-70 mt-1' }, `Źródło: ${item.source}`)
               )
             ),
             React.createElement('button', {
               onClick: () => setCurrentScreen('news'),
-              className: 'w-full bg-white text-purple-600 hover:bg-purple-50 py-3 rounded-2xl font-bold mt-4'
+              className: 'w-full bg-white text-purple-600 hover:bg-purple-50 py-2 rounded-2xl font-bold mt-3 text-sm'
             }, 'Zobacz wszystkie wiadomości')
           )
         :
-          React.createElement('div', { className: 'text-center py-8' },
+          React.createElement('div', { className: 'text-center py-6' },
             React.createElement('p', { className: 'text-xl' }, 'Brak dostępnych wiadomości')
           )
       );
     };
 
     const renderFunFactWidget = () => {
-      return React.createElement('div', { className: 'fun-fact p-4 md:p-6 rounded-3xl shadow-xl mb-6' },
-        React.createElement('div', { className: 'flex items-center mb-4' },
-          React.createElement('span', { className: 'text-3xl mr-3' }, '💡'),
-          React.createElement('h3', { className: 'text-2xl md:text-3xl font-bold text-gray-800' }, 'Ciekawostka dnia')
+      return React.createElement('div', { className: 'fun-fact p-4 md:p-6 rounded-3xl shadow-xl mb-4' },
+        React.createElement('div', { className: 'flex items-center mb-3' },
+          React.createElement('span', { className: 'text-2xl mr-3' }, '💡'),
+          React.createElement('h3', { className: 'text-xl md:text-2xl font-bold text-gray-800' }, 'Ciekawostka dnia')
         ),
         
-        React.createElement('div', { className: 'text-lg md:text-xl text-gray-700 italic mb-4' },
+        React.createElement('div', { className: 'text-base md:text-lg text-gray-700 italic mb-3' },
           currentFunFact || 'Ładowanie ciekawostki...'
         ),
         
@@ -905,7 +1050,7 @@
                 addNotification('Nowa ciekawostka załadowana!');
               }
             },
-            className: 'bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-2xl font-bold'
+            className: 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-2xl font-bold text-sm'
           }, '🎲 Nowa ciekawostka'),
           
           React.createElement('button', {
@@ -921,21 +1066,18 @@
                 navigator.clipboard.writeText(currentFunFact);
               }
             },
-            className: 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-2xl font-bold'
+            className: 'bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-2xl font-bold text-sm'
           }, '📋 Udostępnij')
         )
       );
     };
 
     const renderHomeScreen = () => {
-      return React.createElement('div', { className: 'space-y-4 sm:space-y-6 text-center' },
-        React.createElement('h1', { className: 'text-3xl sm:text-4xl md:text-5xl font-bold text-blue-600 mb-2' }, 'Senior-Easy'),
-        React.createElement('p', { className: 'text-lg sm:text-xl md:text-2xl text-gray-600 mb-4' }, 'Witaj! Co chcesz zrobić?'),
-        
-        // Widgety na górze ekranu głównego
-        renderWeatherWidget(),
-        renderNewsWidget(),
-        renderFunFactWidget(),
+      return React.createElement('div', { className: 'space-y-4 sm:space-y-6' },
+        React.createElement('div', { className: 'text-center' },
+          React.createElement('h1', { className: 'text-3xl sm:text-4xl md:text-5xl font-bold text-blue-600 mb-2' }, 'Senior-Easy'),
+          React.createElement('p', { className: 'text-lg sm:text-xl md:text-2xl text-gray-600 mb-4' }, 'Witaj! Co chcesz zrobić?')
+        ),
         
         React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6' },
           React.createElement('button', {
@@ -966,6 +1108,16 @@
             React.createElement('span', { className: 'text-4xl sm:text-5xl' }, '📍'),
             React.createElement('span', { className: 'text-xl sm:text-2xl md:text-3xl font-bold' }, 'Usługi')
           )
+        ),
+        
+        // Widgety na dole ekranu głównego - ZMIENIONE MIEJSCE
+        React.createElement('div', { className: 'mt-6 pt-6 border-t border-gray-300' },
+          React.createElement('h3', { className: 'text-2xl font-bold text-center mb-4 text-gray-700' }, 'Informacje i aktualności'),
+          React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-3 gap-4' },
+            renderWeatherWidget(),
+            renderNewsWidget(),
+            renderFunFactWidget()
+          )
         )
       );
     };
@@ -995,106 +1147,113 @@
       return React.createElement('div', { className: 'space-y-4 md:space-y-6' },
         React.createElement('h2', { className: 'text-3xl md:text-4xl font-bold text-center mb-6 md:mb-8' }, 'Przypomnienia o Lekach'),
         
-        medications.map(med => {
-          const today = (new Date().getDay() + 6) % 7;
-          const isTodayScheduled = med.days.includes(today);
-          const wasTakenToday = med.lastTaken === new Date().toDateString();
-          const isAvailable = isTodayScheduled && !wasTakenToday;
-          
-          return React.createElement('div', {
-            key: med.id,
-            className: `bg-white border-4 p-4 md:p-6 rounded-3xl shadow-xl flex items-center justify-between ${!isAvailable?'border-gray-300 opacity-60':'border-purple-500'}`
-          },
-            editingMedication === med.id ? 
-              React.createElement('div', { className: 'w-full space-y-4' },
-                React.createElement('input', {
-                  type: 'text',
-                  placeholder: 'Nazwa leku',
-                  value: newMedName,
-                  onChange: e => setNewMedName(e.target.value),
-                  className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
-                }),
-                React.createElement('input', {
-                  type: 'time',
-                  value: newMedTime,
-                  onChange: e => setNewMedTime(e.target.value),
-                  className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
-                }),
-                React.createElement('div', { className: 'flex flex-col space-y-3' },
-                  React.createElement('div', { className: 'flex justify-between' },
-                    React.createElement('span', { className: 'text-lg font-bold' }, 'Dni przyjmowania:'),
-                    React.createElement('div', { className: 'flex space-x-2' },
-                      React.createElement('button', {
-                        onClick: selectAllDays,
-                        className: 'bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm'
-                      }, 'Wszystkie'),
-                      React.createElement('button', {
-                        onClick: clearDays,
-                        className: 'bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 rounded text-sm'
-                      }, 'Wyczyść')
-                    )
-                  ),
-                  React.createElement('div', { className: 'flex justify-between' },
-                    weekdays.map((day, index) =>
-                      React.createElement('button', {
-                        key: index,
-                        onClick: () => toggleDay(index),
-                        className: `weekday-button ${newMedDays.includes(index) ? 'selected' : ''}`
-                      }, day)
-                    )
-                  )
-                ),
-                React.createElement('div', { className: 'flex space-x-3' },
-                  React.createElement('button', {
-                    onClick: () => saveEditMedication(med.id),
-                    className: 'flex-1 bg-green-500 hover:bg-green-600 text-white p-3 rounded-2xl font-bold'
-                  }, '💾 Zapisz'),
-                  React.createElement('button', {
-                    onClick: cancelEditMedication,
-                    className: 'flex-1 bg-gray-500 hover:bg-gray-600 text-white p-3 rounded-2xl font-bold'
-                  }, '❌ Anuluj')
-                )
-              )
-            :
-              React.createElement(React.Fragment, null,
-                React.createElement('div', { className: 'flex-1' },
-                  React.createElement('div', { className: 'text-2xl md:text-3xl font-bold text-gray-800' }, med.name),
-                  React.createElement('div', { className: 'text-xl md:text-2xl text-gray-600' }, `Godzina: ${med.time}`),
-                  React.createElement('div', { className: 'mt-2' },
-                    React.createElement('div', { className: 'text-lg text-gray-500' }, 'Dni:'),
-                    React.createElement('div', { className: 'flex space-x-1' },
+        medications.length === 0 ? 
+          React.createElement('div', { className: 'text-center py-12' },
+            React.createElement('div', { className: 'text-6xl mb-4' }, '💊'),
+            React.createElement('p', { className: 'text-2xl text-gray-600 mb-2' }, 'Brak zapisanych leków'),
+            React.createElement('p', { className: 'text-lg text-gray-500' }, 'Dodaj swoje leki korzystając z formularza poniżej')
+          )
+        :
+          medications.map(med => {
+            const today = (new Date().getDay() + 6) % 7;
+            const isTodayScheduled = med.days.includes(today);
+            const wasTakenToday = med.lastTaken === new Date().toDateString();
+            const isAvailable = isTodayScheduled && !wasTakenToday;
+            
+            return React.createElement('div', {
+              key: med.id,
+              className: `bg-white border-4 p-4 md:p-6 rounded-3xl shadow-xl flex items-center justify-between ${!isAvailable?'border-gray-300 opacity-60':'border-purple-500'}`
+            },
+              editingMedication === med.id ? 
+                React.createElement('div', { className: 'w-full space-y-4' },
+                  React.createElement('input', {
+                    type: 'text',
+                    placeholder: 'Nazwa leku',
+                    value: newMedName,
+                    onChange: e => setNewMedName(e.target.value),
+                    className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
+                  }),
+                  React.createElement('input', {
+                    type: 'time',
+                    value: newMedTime,
+                    onChange: e => setNewMedTime(e.target.value),
+                    className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
+                  }),
+                  React.createElement('div', { className: 'flex flex-col space-y-3' },
+                    React.createElement('div', { className: 'flex justify-between' },
+                      React.createElement('span', { className: 'text-lg font-bold' }, 'Dni przyjmowania:'),
+                      React.createElement('div', { className: 'flex space-x-2' },
+                        React.createElement('button', {
+                          onClick: selectAllDays,
+                          className: 'bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm'
+                        }, 'Wszystkie'),
+                        React.createElement('button', {
+                          onClick: clearDays,
+                          className: 'bg-gray-500 hover:bg-gray-600 text-white px-2 py-1 rounded text-sm'
+                        }, 'Wyczyść')
+                      )
+                    ),
+                    React.createElement('div', { className: 'flex justify-between' },
                       weekdays.map((day, index) =>
-                        React.createElement('span', {
+                        React.createElement('button', {
                           key: index,
-                          className: `text-sm ${med.days.includes(index) ? 'font-bold text-purple-600' : 'text-gray-400'}`
+                          onClick: () => toggleDay(index),
+                          className: `weekday-button ${newMedDays.includes(index) ? 'selected' : ''}`
                         }, day)
                       )
                     )
-                  )
-                ),
-                React.createElement('div', { className: 'flex space-x-2 md:space-x-3' },
-                  isAvailable ? 
+                  ),
+                  React.createElement('div', { className: 'flex space-x-3' },
                     React.createElement('button', {
-                      onClick: () => markMedicationTaken(med.id),
-                      className: 'bg-green-500 hover:bg-green-600 active:bg-green-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-2xl'
-                    }, '✅')
-                  :
-                    React.createElement('div', { 
-                      className: 'bg-gray-300 text-white p-3 md:p-4 rounded-2xl text-2xl',
-                      title: wasTakenToday ? 'Przyjęty dzisiaj' : 'Nie zaplanowany na dzisiaj'
-                    }, '✅'),
-                  React.createElement('button', {
-                    onClick: () => startEditMedication(med),
-                    className: 'bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-2xl'
-                  }, '✏️'),
-                  React.createElement('button', {
-                    onClick: () => deleteMedication(med.id),
-                    className: 'bg-red-500 hover:bg-red-600 active:bg-red-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-2xl'
-                  }, '🗑️')
+                      onClick: () => saveEditMedication(med.id),
+                      className: 'flex-1 bg-green-500 hover:bg-green-600 text-white p-3 rounded-2xl font-bold'
+                    }, '💾 Zapisz'),
+                    React.createElement('button', {
+                      onClick: cancelEditMedication,
+                      className: 'flex-1 bg-gray-500 hover:bg-gray-600 text-white p-3 rounded-2xl font-bold'
+                    }, '❌ Anuluj')
+                  )
                 )
-              )
-          );
-        }),
+              :
+                React.createElement(React.Fragment, null,
+                  React.createElement('div', { className: 'flex-1' },
+                    React.createElement('div', { className: 'text-2xl md:text-3xl font-bold text-gray-800' }, med.name),
+                    React.createElement('div', { className: 'text-xl md:text-2xl text-gray-600' }, `Godzina: ${med.time}`),
+                    React.createElement('div', { className: 'mt-2' },
+                      React.createElement('div', { className: 'text-lg text-gray-500' }, 'Dni:'),
+                      React.createElement('div', { className: 'flex space-x-1' },
+                        weekdays.map((day, index) =>
+                          React.createElement('span', {
+                            key: index,
+                            className: `text-sm ${med.days.includes(index) ? 'font-bold text-purple-600' : 'text-gray-400'}`
+                          }, day)
+                        )
+                      )
+                    )
+                  ),
+                  React.createElement('div', { className: 'flex space-x-2 md:space-x-3' },
+                    isAvailable ? 
+                      React.createElement('button', {
+                        onClick: () => markMedicationTaken(med.id),
+                        className: 'bg-green-500 hover:bg-green-600 active:bg-green-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-2xl'
+                      }, '✅')
+                    :
+                      React.createElement('div', { 
+                        className: 'bg-gray-300 text-white p-3 md:p-4 rounded-2xl text-2xl',
+                        title: wasTakenToday ? 'Przyjęty dzisiaj' : 'Nie zaplanowany na dzisiaj'
+                      }, '✅'),
+                    React.createElement('button', {
+                      onClick: () => startEditMedication(med),
+                      className: 'bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-2xl'
+                    }, '✏️'),
+                    React.createElement('button', {
+                      onClick: () => deleteMedication(med.id),
+                      className: 'bg-red-500 hover:bg-red-600 active:bg-red-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-2xl'
+                    }, '🗑️')
+                  )
+                )
+            );
+          }),
 
         React.createElement('div', { className: 'bg-blue-50 border-4 border-blue-300 p-4 md:p-6 rounded-3xl space-y-4' },
           React.createElement('h3', { className: 'text-xl md:text-2xl font-bold text-center' }, 'Dodaj Nowy Lek'),
@@ -1147,80 +1306,87 @@
       return React.createElement('div', { className: 'space-y-4 md:space-y-6' },
         React.createElement('h2', { className: 'text-3xl md:text-4xl font-bold text-center mb-6 md:mb-8' }, 'Kontakty Rodzinne'),
         
-        familyContacts.map(c =>
-          React.createElement('div', {
-            key: c.id,
-            className: 'bg-white border-4 border-blue-500 p-4 md:p-6 rounded-3xl shadow-xl mb-4'
-          },
-            editingContact === c.id ?
-              React.createElement('div', { className: 'space-y-4' },
-                React.createElement('input', {
-                  type: 'text',
-                  placeholder: 'Imię i nazwisko',
-                  value: newContactName,
-                  onChange: e => setNewContactName(e.target.value),
-                  className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
-                }),
-                React.createElement('input', {
-                  type: 'tel',
-                  placeholder: 'Numer telefonu z +48',
-                  value: newContactPhone,
-                  onChange: e => setNewContactPhone(e.target.value),
-                  className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
-                }),
-                React.createElement('select', {
-                  value: newContactApp,
-                  onChange: e => setNewContactApp(e.target.value),
-                  className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
-                },
-                  React.createElement('option', { value: '' }, 'Brak aplikacji'),
-                  React.createElement('option', { value: 'whatsapp' }, 'WhatsApp'),
-                  React.createElement('option', { value: 'viber' }, 'Viber')
-                ),
-                React.createElement('div', { className: 'flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3' },
-                  React.createElement('button', {
-                    onClick: () => saveEditContact(c.id),
-                    className: 'flex-1 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
-                  }, '💾 Zapisz'),
-                  React.createElement('button', {
-                    onClick: cancelEditContact,
-                    className: 'flex-1 bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
-                  }, '❌ Anuluj')
-                )
-              )
-            :
-              React.createElement(React.Fragment, null,
-                React.createElement('div', { className: 'flex items-center space-x-4 md:space-x-6 mb-4' },
-                  React.createElement('span', { className: 'text-5xl md:text-6xl' }, c.avatar),
-                  React.createElement('div', { className: 'flex-1' },
-                    React.createElement('div', { className: 'text-2xl md:text-3xl font-bold text-gray-800' }, c.name),
-                    React.createElement('div', { className: 'text-lg md:text-xl text-gray-500' }, c.phone),
-                    React.createElement('div', { className: 'text-base md:text-lg text-gray-400' }, c.app ? `(${c.app})` : '')
-                  )
-                ),
-                React.createElement('div', { className: 'flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3' },
-                  React.createElement('button', {
-                    onClick: () => makeCall(c),
-                    className: 'flex-1 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white p-3 md:p-4 rounded-2xl flex items-center justify-center transition-colors text-lg'
-                  }, '📞 Zadzwoń'),
-                  React.createElement('button', {
-                    onClick: () => startVideoCall(c),
-                    className: 'flex-1 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white p-3 md:p-4 rounded-2xl flex items-center justify-center transition-colors text-lg'
-                  }, '🎥 Wideo')
-                ),
-                React.createElement('div', { className: 'flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3 mt-3' },
-                  React.createElement('button', {
-                    onClick: () => startEditContact(c),
-                    className: 'flex-1 bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
-                  }, '✏️ Edytuj'),
-                  React.createElement('button', {
-                    onClick: () => deleteContact(c.id),
-                    className: 'flex-1 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
-                  }, '🗑️ Usuń')
-                )
-              )
+        familyContacts.length === 0 ?
+          React.createElement('div', { className: 'text-center py-12' },
+            React.createElement('div', { className: 'text-6xl mb-4' }, '👨‍👩‍👧‍👦'),
+            React.createElement('p', { className: 'text-2xl text-gray-600 mb-2' }, 'Brak zapisanych kontaktów'),
+            React.createElement('p', { className: 'text-lg text-gray-500' }, 'Dodaj członków rodziny korzystając z formularza poniżej')
           )
-        ),
+        :
+          familyContacts.map(c =>
+            React.createElement('div', {
+              key: c.id,
+              className: 'bg-white border-4 border-blue-500 p-4 md:p-6 rounded-3xl shadow-xl mb-4'
+            },
+              editingContact === c.id ?
+                React.createElement('div', { className: 'space-y-4' },
+                  React.createElement('input', {
+                    type: 'text',
+                    placeholder: 'Imię i nazwisko',
+                    value: newContactName,
+                    onChange: e => setNewContactName(e.target.value),
+                    className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
+                  }),
+                  React.createElement('input', {
+                    type: 'tel',
+                    placeholder: 'Numer telefonu z +48',
+                    value: newContactPhone,
+                    onChange: e => setNewContactPhone(e.target.value),
+                    className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
+                  }),
+                  React.createElement('select', {
+                    value: newContactApp,
+                    onChange: e => setNewContactApp(e.target.value),
+                    className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
+                  },
+                    React.createElement('option', { value: '' }, 'Brak aplikacji'),
+                    React.createElement('option', { value: 'whatsapp' }, 'WhatsApp'),
+                    React.createElement('option', { value: 'viber' }, 'Viber')
+                  ),
+                  React.createElement('div', { className: 'flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3' },
+                    React.createElement('button', {
+                      onClick: () => saveEditContact(c.id),
+                      className: 'flex-1 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
+                    }, '💾 Zapisz'),
+                    React.createElement('button', {
+                      onClick: cancelEditContact,
+                      className: 'flex-1 bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
+                    }, '❌ Anuluj')
+                  )
+                )
+              :
+                React.createElement(React.Fragment, null,
+                  React.createElement('div', { className: 'flex items-center space-x-4 md:space-x-6 mb-4' },
+                    React.createElement('span', { className: 'text-5xl md:text-6xl' }, c.avatar),
+                    React.createElement('div', { className: 'flex-1' },
+                      React.createElement('div', { className: 'text-2xl md:text-3xl font-bold text-gray-800' }, c.name),
+                      React.createElement('div', { className: 'text-lg md:text-xl text-gray-500' }, c.phone),
+                      React.createElement('div', { className: 'text-base md:text-lg text-gray-400' }, c.app ? `(${c.app})` : '')
+                    )
+                  ),
+                  React.createElement('div', { className: 'flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3' },
+                    React.createElement('button', {
+                      onClick: () => makeCall(c),
+                      className: 'flex-1 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white p-3 md:p-4 rounded-2xl flex items-center justify-center transition-colors text-lg'
+                    }, '📞 Zadzwoń'),
+                    React.createElement('button', {
+                      onClick: () => startVideoCall(c),
+                      className: 'flex-1 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white p-3 md:p-4 rounded-2xl flex items-center justify-center transition-colors text-lg'
+                    }, '🎥 Wideo')
+                  ),
+                  React.createElement('div', { className: 'flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3 mt-3' },
+                    React.createElement('button', {
+                      onClick: () => startEditContact(c),
+                      className: 'flex-1 bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
+                    }, '✏️ Edytuj'),
+                    React.createElement('button', {
+                      onClick: () => deleteContact(c.id),
+                      className: 'flex-1 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
+                    }, '🗑️ Usuń')
+                  )
+                )
+            )
+          ),
 
         React.createElement('div', { className: 'bg-blue-50 border-4 border-blue-300 p-4 md:p-6 rounded-3xl space-y-4' },
           React.createElement('h3', { className: 'text-xl md:text-2xl font-bold text-center' }, 'Dodaj Kontakt'),
@@ -1259,73 +1425,80 @@
       return React.createElement('div', { className: 'space-y-4 md:space-y-6' },
         React.createElement('h2', { className: 'text-3xl md:text-4xl font-bold text-center mb-6 md:mb-8' }, 'Lokalne Usługi'),
         
-        localServices.map(s =>
-          React.createElement('div', {
-            key: s.id,
-            className: 'bg-white border-4 border-orange-500 p-4 md:p-6 rounded-3xl shadow-xl mb-4'
-          },
-            editingService === s.id ?
-              React.createElement('div', { className: 'space-y-4' },
-                React.createElement('input', {
-                  type: 'text',
-                  placeholder: 'Nazwa',
-                  value: newServiceName,
-                  onChange: e => setNewServiceName(e.target.value),
-                  className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
-                }),
-                React.createElement('input', {
-                  type: 'tel',
-                  placeholder: 'Telefon',
-                  value: newServicePhone,
-                  onChange: e => setNewServicePhone(e.target.value),
-                  className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
-                }),
-                React.createElement('input', {
-                  type: 'text',
-                  placeholder: 'Emoji/Ikona',
-                  value: newServiceIcon,
-                  onChange: e => setNewServiceIcon(e.target.value),
-                  className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
-                }),
-                React.createElement('div', { className: 'flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3' },
-                  React.createElement('button', {
-                    onClick: () => saveEditService(s.id),
-                    className: 'flex-1 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
-                  }, '💾 Zapisz'),
-                  React.createElement('button', {
-                    onClick: cancelEditService,
-                    className: 'flex-1 bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
-                  }, '❌ Anuluj')
-                )
-              )
-            :
-              React.createElement(React.Fragment, null,
-                React.createElement('div', { className: 'flex items-center space-x-4 md:space-x-6 mb-4' },
-                  React.createElement('span', { className: 'text-5xl md:text-6xl' }, s.icon),
-                  React.createElement('div', { className: 'flex-1 text-left' },
-                    React.createElement('div', { className: 'text-2xl md:text-3xl font-bold text-gray-800' }, s.name),
-                    React.createElement('div', { className: 'text-lg md:text-xl text-gray-500' }, s.phone)
-                  )
-                ),
-                React.createElement('div', { className: 'flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3' },
-                  React.createElement('button', {
-                    onClick: () => makeCall(s),
-                    className: 'flex-1 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white p-3 md:p-4 rounded-2xl flex items-center justify-center transition-colors text-lg'
-                  }, '📞 Zadzwoń')
-                ),
-                React.createElement('div', { className: 'flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3 mt-3' },
-                  React.createElement('button', {
-                    onClick: () => startEditService(s),
-                    className: 'flex-1 bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
-                  }, '✏️ Edytuj'),
-                  React.createElement('button', {
-                    onClick: () => deleteService(s.id),
-                    className: 'flex-1 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
-                  }, '🗑️ Usuń')
-                )
-              )
+        localServices.length === 0 ?
+          React.createElement('div', { className: 'text-center py-12' },
+            React.createElement('div', { className: 'text-6xl mb-4' }, '🏢'),
+            React.createElement('p', { className: 'text-2xl text-gray-600 mb-2' }, 'Brak zapisanych usług'),
+            React.createElement('p', { className: 'text-lg text-gray-500' }, 'Dodaj lokalne usługi korzystając z formularza poniżej')
           )
-        ),
+        :
+          localServices.map(s =>
+            React.createElement('div', {
+              key: s.id,
+              className: 'bg-white border-4 border-orange-500 p-4 md:p-6 rounded-3xl shadow-xl mb-4'
+            },
+              editingService === s.id ?
+                React.createElement('div', { className: 'space-y-4' },
+                  React.createElement('input', {
+                    type: 'text',
+                    placeholder: 'Nazwa',
+                    value: newServiceName,
+                    onChange: e => setNewServiceName(e.target.value),
+                    className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
+                  }),
+                  React.createElement('input', {
+                    type: 'tel',
+                    placeholder: 'Telefon',
+                    value: newServicePhone,
+                    onChange: e => setNewServicePhone(e.target.value),
+                    className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
+                  }),
+                  React.createElement('input', {
+                    type: 'text',
+                    placeholder: 'Emoji/Ikona',
+                    value: newServiceIcon,
+                    onChange: e => setNewServiceIcon(e.target.value),
+                    className: 'w-full text-xl md:text-2xl p-3 md:p-4 border-2 border-gray-300 rounded-2xl'
+                  }),
+                  React.createElement('div', { className: 'flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3' },
+                    React.createElement('button', {
+                      onClick: () => saveEditService(s.id),
+                      className: 'flex-1 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
+                    }, '💾 Zapisz'),
+                    React.createElement('button', {
+                      onClick: cancelEditService,
+                      className: 'flex-1 bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
+                    }, '❌ Anuluj')
+                  )
+                )
+              :
+                React.createElement(React.Fragment, null,
+                  React.createElement('div', { className: 'flex items-center space-x-4 md:space-x-6 mb-4' },
+                    React.createElement('span', { className: 'text-5xl md:text-6xl' }, s.icon),
+                    React.createElement('div', { className: 'flex-1 text-left' },
+                      React.createElement('div', { className: 'text-2xl md:text-3xl font-bold text-gray-800' }, s.name),
+                      React.createElement('div', { className: 'text-lg md:text-xl text-gray-500' }, s.phone)
+                    )
+                  ),
+                  React.createElement('div', { className: 'flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3' },
+                    React.createElement('button', {
+                      onClick: () => makeCall(s),
+                      className: 'flex-1 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white p-3 md:p-4 rounded-2xl flex items-center justify-center transition-colors text-lg'
+                    }, '📞 Zadzwoń')
+                  ),
+                  React.createElement('div', { className: 'flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3 mt-3' },
+                    React.createElement('button', {
+                      onClick: () => startEditService(s),
+                      className: 'flex-1 bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
+                    }, '✏️ Edytuj'),
+                    React.createElement('button', {
+                      onClick: () => deleteService(s.id),
+                      className: 'flex-1 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white p-3 md:p-4 rounded-2xl transition-colors text-lg'
+                    }, '🗑️ Usuń')
+                  )
+                )
+            )
+          ),
 
         React.createElement('div', { className: 'bg-orange-50 border-4 border-orange-300 p-4 md:p-6 rounded-3xl space-y-4' },
           React.createElement('h3', { className: 'text-xl md:text-2xl font-bold text-center' }, 'Dodaj Usługę'),
@@ -1374,10 +1547,7 @@
           
           notifications.length > 0 && React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 gap-2' },
             React.createElement('button', {
-              onClick: () => {
-                setNotifications(prev => prev.map(n => ({...n, read: true})));
-                addNotification('Wszystkie powiadomienia oznaczone jako przeczytane');
-              },
+              onClick: markAllNotificationsRead,
               className: 'bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-2xl font-bold flex items-center justify-center space-x-2'
             },
               React.createElement('span', null, '📖'),
@@ -1403,7 +1573,7 @@
           React.createElement('div', { className: 'text-center py-12' },
             React.createElement('div', { className: 'text-6xl mb-4' }, '📭'),
             React.createElement('p', { className: 'text-2xl text-gray-500 mb-2' }, 'Brak powiadomień'),
-            React.createElement('p', { className: 'text-lg text-gray-400' }, 'Wszystkie powiadomienia zostały wyczyszczone')
+            React.createElement('p', { className: 'text-lg text-gray-400' }, 'Tutaj pojawią się przypomnienia o lekach i inne informacje')
           )
         :
           React.createElement('div', { className: 'space-y-4' },
@@ -1594,9 +1764,10 @@
         React.createElement('div', { className: 'bg-purple-50 border-4 border-purple-300 p-6 md:p-8 rounded-3xl' },
           React.createElement('h3', { className: 'text-2xl md:text-3xl font-bold text-center mb-4' }, 'Informacje o Aplikacji'),
           React.createElement('div', { className: 'space-y-3 text-lg md:text-xl text-gray-700' },
-            React.createElement('p', null, React.createElement('strong', null, 'Wersja:'), ' 3.0 PWA'),
+            React.createElement('p', null, React.createElement('strong', null, 'Wersja:'), ' 3.1 PWA'),
             React.createElement('p', null, React.createElement('strong', null, 'Typ:'), ' Progressive Web App'),
             React.createElement('p', null, React.createElement('strong', null, 'Wsparcie:'), ' +480 800 800'),
+            React.createElement('p', null, React.createElement('strong', null, 'Dane:'), ' Wszystkie dane są zapisywane lokalnie w przeglądarce'),
             React.createElement('p', { className: 'text-base md:text-lg text-gray-600 mt-4' },
               'Aplikacja działa offline i może być zainstalowana na urządzeniu mobilnym lub komputerze.'
             )
@@ -2006,33 +2177,6 @@
   }
 
   ReactDOM.render(React.createElement(SeniorEasyApp), document.getElementById('root'));
-  </script>
-  
-  <script>
-    // Rejestracja Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js')
-          .then(registration => {
-            console.log('✅ Service Worker zarejestrowany:', registration.scope);
-            
-            setInterval(() => {
-              registration.update();
-            }, 60000);
-          })
-          .catch(error => {
-            console.log('❌ Błąd rejestracji Service Worker:', error);
-          });
-      });
-      
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
-      });
-    }
   </script>
 </body>
 </html>
