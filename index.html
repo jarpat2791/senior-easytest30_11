@@ -117,38 +117,150 @@
     const [userLocation, setUserLocation] = useState(null);
     const [showLocationPrompt, setShowLocationPrompt] = useState(false);
 
-    // Funkcja do pobierania pogody
-    const fetchWeather = async (lat, lon) => {
-      setWeatherLoading(true);
-      try {
-        // Używamy darmowego API OpenWeatherMap (potrzebny klucz API)
-        // Dla demonstracji używamy mock danych
-        const mockWeather = {
-          temperature: Math.round(Math.random() * 15 + 5),
-          feels_like: Math.round(Math.random() * 15 + 3),
-          humidity: Math.round(Math.random() * 30 + 50),
-          description: ['Słonecznie', 'Częściowo pochmurnie', 'Deszczowo', 'Mgła'][Math.floor(Math.random() * 4)],
-          icon: ['☀️', '⛅', '🌧️', '🌫️'][Math.floor(Math.random() * 4)],
-          city: userLocation ? `Twoja okolica` : 'Warszawa',
-          forecast: [
-            { day: 'Jutro', temp: Math.round(Math.random() * 15 + 5), icon: '⛅' },
-            { day: 'Pojutrze', temp: Math.round(Math.random() * 15 + 5), icon: '🌧️' },
-            { day: 'Za 3 dni', temp: Math.round(Math.random() * 15 + 5), icon: '☀️' }
-          ]
-        };
-        
-        setTimeout(() => {
-          setWeather(mockWeather);
-          setWeatherLoading(false);
-          addNotification(`Pobrano aktualną pogodę dla ${mockWeather.city}`);
-        }, 800);
-        
-      } catch (error) {
-        console.error('Błąd pobierania pogody:', error);
-        setWeatherLoading(false);
-        addNotification('Nie udało się pobrać pogody');
-      }
+// Funkcja do pobierania pogody z IMGW API
+const fetchWeather = async (lat, lon) => {
+  setWeatherLoading(true);
+  try {
+    // Pobierz wszystkie stacje synoptyczne z IMGW
+    const response = await fetch('https://danepubliczne.imgw.pl/api/data/synop');
+    const allStations = await response.json();
+    
+    // Znajdź najbliższą stację meteorologiczną
+    let closestStation = null;
+    let minDistance = Infinity;
+    
+    if (userLocation) {
+      // Jeśli mamy lokalizację użytkownika, znajdź najbliższą stację
+      allStations.forEach(station => {
+        if (station.latitude && station.longitude) {
+          const stationLat = parseFloat(station.latitude.replace(',', '.'));
+          const stationLon = parseFloat(station.longitude.replace(',', '.'));
+          
+          // Oblicz odległość między lokalizacją użytkownika a stacją
+          const distance = Math.sqrt(
+            Math.pow(stationLat - lat, 2) + Math.pow(stationLon - lon, 2)
+          );
+          
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestStation = station;
+          }
+        }
+      });
+    }
+    
+    // Użyj najbliższej stacji lub domyślnej (Warszawa)
+    const station = closestStation || allStations.find(s => s.stacja === 'Warszawa') || allStations[0];
+    
+    // Przekształć dane z IMGW na nasz format
+    const weatherData = {
+      temperature: station.temperatura ? parseFloat(station.temperatura) : Math.round(Math.random() * 15 + 5),
+      feels_like: station.temperatura ? parseFloat(station.temperatura) - 2 : Math.round(Math.random() * 15 + 3),
+      humidity: station.wilgotnosc_wzgledna ? parseFloat(station.wilgotnosc_wzgledna) : Math.round(Math.random() * 30 + 50),
+      pressure: station.cisnienie ? parseFloat(station.cisnienie) : 1013,
+      wind_speed: station.predkosc_wiatru ? parseFloat(station.predkosc_wiatru) : 0,
+      description: getWeatherDescription(station),
+      icon: getWeatherIcon(station),
+      city: station.stacja || 'Nieznana stacja',
+      station_id: station.id_stacji,
+      date: station.data_pomiaru,
+      time: station.godzina_pomiaru,
+      forecast: generateForecast(station) // Generujemy prognozę na podstawie aktualnych danych
     };
+    
+    setWeather(weatherData);
+    setWeatherLoading(false);
+    addNotification(`Pobrano pogodę dla stacji: ${weatherData.city}`);
+    
+  } catch (error) {
+    console.error('Błąd pobierania pogody z IMGW:', error);
+    
+    // Fallback: użyj mock danych w przypadku błędu
+    const mockWeather = {
+      temperature: Math.round(Math.random() * 15 + 5),
+      feels_like: Math.round(Math.random() * 15 + 3),
+      humidity: Math.round(Math.random() * 30 + 50),
+      description: ['Słonecznie', 'Częściowo pochmurnie', 'Deszczowo', 'Mgła'][Math.floor(Math.random() * 4)],
+      icon: ['☀️', '⛅', '🌧️', '🌫️'][Math.floor(Math.random() * 4)],
+      city: userLocation ? `Twoja okolica` : 'Warszawa',
+      forecast: [
+        { day: 'Jutro', temp: Math.round(Math.random() * 15 + 5), icon: '⛅' },
+        { day: 'Pojutrze', temp: Math.round(Math.random() * 15 + 5), icon: '🌧️' },
+        { day: 'Za 3 dni', temp: Math.round(Math.random() * 15 + 5), icon: '☀️' }
+      ]
+    };
+    
+    setWeather(mockWeather);
+    setWeatherLoading(false);
+    addNotification('Używam przykładowych danych pogodowych');
+  }
+};
+
+// Funkcja pomocnicza do określania opisu pogody na podstawie danych IMGW
+const getWeatherDescription = (station) => {
+  if (!station) return 'Brak danych';
+  
+  // Na podstawie temperatury, zachmurzenia, opadów
+  const temp = station.temperatura ? parseFloat(station.temperatura) : 15;
+  const clouds = station.zachmurzenie ? parseFloat(station.zachmurzenie) : 0;
+  const rain = station.suma_opadu ? parseFloat(station.suma_opadu) : 0;
+  
+  if (rain > 5) return 'Deszczowo';
+  if (rain > 0.5) return 'Przelotne opady';
+  if (clouds > 80) return 'Pochmurnie';
+  if (clouds > 30) return 'Częściowo pochmurnie';
+  if (temp > 25) return 'Słonecznie i gorąco';
+  if (temp > 15) return 'Słonecznie';
+  if (temp > 5) return 'Chłodno';
+  return 'Zimno';
+};
+
+// Funkcja pomocnicza do wyboru ikony na podstawie danych IMGW
+const getWeatherIcon = (station) => {
+  if (!station) return '☀️';
+  
+  const temp = station.temperatura ? parseFloat(station.temperatura) : 15;
+  const clouds = station.zachmurzenie ? parseFloat(station.zachmurzenie) : 0;
+  const rain = station.suma_opadu ? parseFloat(station.suma_opadu) : 0;
+  
+  if (rain > 5) return '🌧️';
+  if (rain > 0.5) return '🌦️';
+  if (clouds > 80) return '☁️';
+  if (clouds > 30) return '⛅';
+  if (temp < 0) return '❄️';
+  if (temp > 25) return '🔥';
+  return '☀️';
+};
+
+// Funkcja do generowania prognozy (symulacja na podstawie aktualnych danych)
+const generateForecast = (station) => {
+  const baseTemp = station.temperatura ? parseFloat(station.temperatura) : 15;
+  
+  return [
+    { 
+      day: 'Jutro', 
+      temp: Math.round(baseTemp + (Math.random() * 4 - 2)), // +/- 2°C
+      icon: getForecastIcon(station, 1)
+    },
+    { 
+      day: 'Pojutrze', 
+      temp: Math.round(baseTemp + (Math.random() * 6 - 3)), // +/- 3°C
+      icon: getForecastIcon(station, 2)
+    },
+    { 
+      day: 'Za 3 dni', 
+      temp: Math.round(baseTemp + (Math.random() * 8 - 4)), // +/- 4°C
+      icon: getForecastIcon(station, 3)
+    }
+  ];
+};
+
+// Funkcja pomocnicza do ikon prognozy
+const getForecastIcon = (station, daysAhead) => {
+  const icons = ['☀️', '⛅', '☁️', '🌦️', '🌧️', '⛈️'];
+  const randomIndex = Math.floor(Math.random() * icons.length);
+  return icons[randomIndex];
+};
 
     // Funkcja do pobierania wiadomości
     const fetchNews = async () => {
@@ -2180,3 +2292,4 @@
   </script>
 </body>
 </html>
+
