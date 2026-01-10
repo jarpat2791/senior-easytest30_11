@@ -262,66 +262,192 @@ const getForecastIcon = (station, daysAhead) => {
   return icons[randomIndex];
 };
 
-    // Funkcja do pobierania wiadomości
+    
+    // Funkcja do pobierania rzeczywistych wiadomości z RSS WP.pl
     const fetchNews = async () => {
       setNewsLoading(true);
       try {
+        // Używamy CORS proxy, ponieważ przeglądarki blokują bezpośrednie żądania do RSS
+        const rssUrl = 'https://wiadomosci.wp.pl/feed';
+        
+        // Użyj publicznego CORS proxy
+        const proxyUrl = 'https://api.allorigins.win/get?url=';
+        const encodedUrl = encodeURIComponent(rssUrl);
+        
+        const response = await fetch(`${proxyUrl}${encodedUrl}`);
+        const data = await response.json();
+        
+        if (data.contents) {
+          // Parsujemy XML RSS
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(data.contents, 'text/xml');
+          
+          // Pobieramy wszystkie itemy z RSS
+          const items = xmlDoc.querySelectorAll('item');
+          const newsItems = [];
+          
+          items.forEach((item, index) => {
+            if (index < 10) { // Ogranicz do 10 najnowszych wiadomości
+              const title = item.querySelector('title')?.textContent || 'Brak tytułu';
+              const description = item.querySelector('description')?.textContent || 'Brak opisu';
+              const pubDate = item.querySelector('pubDate')?.textContent || new Date().toISOString();
+              const link = item.querySelector('link')?.textContent || '#';
+              const category = item.querySelector('category')?.textContent || 'Wiadomości';
+              
+              // Formatujemy datę
+              const date = new Date(pubDate);
+              const time = date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+              
+              // Tworzymy krótszy opis
+              const shortDescription = description.length > 150 
+                ? description.substring(0, 150) + '...' 
+                : description;
+              
+              // Usuwamy tagi HTML z opisu
+              const cleanDescription = shortDescription.replace(/<[^>]*>/g, '');
+              
+              // Kategorie dla wiadomości WP.pl
+              const wpCategories = {
+                'Polska': 'Polityka',
+                'Świat': 'Świat',
+                'Biznes': 'Gospodarka',
+                'Sport': 'Sport',
+                'Kultura': 'Kultura',
+                'Zdrowie': 'Zdrowie',
+                'Technologie': 'Technologie',
+                'Motoryzacja': 'Motoryzacja',
+                'Podróże': 'Podróże',
+                'Kobieta': 'Lifestyle'
+              };
+              
+              const newsCategory = wpCategories[category] || 'Wiadomości';
+              
+              newsItems.push({
+                id: index + 1,
+                title: title,
+                description: cleanDescription,
+                time: time,
+                date: date.toLocaleDateString('pl-PL'),
+                category: newsCategory,
+                source: 'WP.pl',
+                link: link,
+                fullText: description
+              });
+            }
+          });
+          
+          // Jeśli udało się pobrać wiadomości
+          if (newsItems.length > 0) {
+            setNews(newsItems);
+            setNewsLoading(false);
+            addNotification(`Pobrano ${newsItems.length} najnowszych wiadomości z WP.pl`);
+            return;
+          }
+        }
+        
+        // Jeśli nie udało się pobrać, rzuć błąd aby przejść do fallback
+        throw new Error('Brak danych z RSS');
+        
+      } catch (error) {
+        console.error('Błąd pobierania wiadomości z WP.pl:', error);
+        
+        // Fallback: użyj przykładowych wiadomości
         const mockNews = [
           {
             id: 1,
             title: 'Nowe świadczenia dla seniorów od 2025 roku',
             description: 'Rząd zapowiada dodatkowe wsparcie finansowe dla osób powyżej 70. roku życia.',
-            time: '15:30',
+            time: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
             category: 'Polityka',
-            source: 'WP.pl'
+            source: 'WP.pl',
+            link: '#'
           },
           {
             id: 2,
             title: 'Bezpłatne badania przesiewowe w całej Polsce',
             description: 'Ministerstwo Zdrowia organizuje akcję badań profilaktycznych dla seniorów.',
-            time: '12:45',
+            time: new Date(Date.now() - 3600000).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
             category: 'Zdrowie',
-            source: 'WP.pl'
+            source: 'WP.pl',
+            link: '#'
           },
           {
             id: 3,
             title: 'Ułatwienia w komunikacji miejskiej',
             description: 'Od stycznia nowe zniżki dla seniorów w transporcie publicznym.',
-            time: '10:20',
+            time: new Date(Date.now() - 7200000).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
             category: 'Transport',
-            source: 'WP.pl'
+            source: 'WP.pl',
+            link: '#'
           },
           {
             id: 4,
             title: 'Kulturalne wydarzenia weekendowe',
             description: 'Teatry i muzea przygotowały specjalne programy dla starszych osób.',
-            time: '09:15',
+            time: new Date(Date.now() - 10800000).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
             category: 'Kultura',
-            source: 'WP.pl'
+            source: 'WP.pl',
+            link: '#'
           },
           {
             id: 5,
             title: 'Poradnik: Bezpieczne zakupy online',
             description: 'Jak uniknąć oszustw podczas robienia zakupów przez internet.',
-            time: '08:30',
+            time: new Date(Date.now() - 14400000).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
             category: 'Poradniki',
-            source: 'WP.pl'
+            source: 'WP.pl',
+            link: '#'
+          },
+          {
+            id: 6,
+            title: 'Alert pogodowy: Nadchodzą mrozy',
+            description: 'IMGW wydał ostrzeżenie przed silnymi mrozami w całej Polsce.',
+            time: new Date(Date.now() - 18000000).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+            category: 'Pogoda',
+            source: 'WP.pl',
+            link: '#'
+          },
+          {
+            id: 7,
+            title: 'Wzrost emerytur od marca',
+            description: 'ZUS ogłosił nowe wysokości waloryzacji świadczeń emerytalnych.',
+            time: new Date(Date.now() - 21600000).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+            category: 'Finanse',
+            source: 'WP.pl',
+            link: '#'
+          },
+          {
+            id: 8,
+            title: 'Darmowe leki dla seniorów 75+',
+            description: 'Rozszerzona lista leków refundowanych dla najstarszych seniorów.',
+            time: new Date(Date.now() - 25200000).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+            category: 'Zdrowie',
+            source: 'WP.pl',
+            link: '#'
           }
         ];
         
         setTimeout(() => {
           setNews(mockNews);
           setNewsLoading(false);
-          addNotification('Zaktualizowano wiadomości');
-        }, 1000);
-        
-      } catch (error) {
-        console.error('Błąd pobierania wiadomości:', error);
-        setNewsLoading(false);
-        addNotification('Nie udało się pobrać wiadomości');
+          addNotification('Używam przykładowych wiadomości');
+        }, 800);
       }
     };
 
+    // Funkcja do otwierania pełnej wiadomości
+    const openFullNews = (newsItem) => {
+      if (newsItem.link && newsItem.link !== '#') {
+        // Otwórz link w nowej karcie
+        window.open(newsItem.link, '_blank');
+        addNotification(`Otwieram artykuł: "${newsItem.title}"`);
+      } else {
+        // Pokaż modal z pełną treścią (dla przykładowych wiadomości)
+        setSelectedNews(newsItem);
+        setShowNewsModal(true);
+        addNotification(`Artykuł: "${newsItem.title}"`);
+      }
+    };
     // Inicjalizacja ciekawostek
     const initFunFacts = () => {
       const facts = [
@@ -2292,4 +2418,5 @@ const getForecastIcon = (station, daysAhead) => {
   </script>
 </body>
 </html>
+
 
