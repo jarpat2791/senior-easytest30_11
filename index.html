@@ -116,6 +116,7 @@
     const [newsLoading, setNewsLoading] = useState(false);
     const [userLocation, setUserLocation] = useState(null);
     const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+    const [locationPermission, setLocationPermission] = useState(null); // Dodane: status pozwolenia
 
     // Funkcja do pobierania pogody z IMGW API
     const fetchWeather = async (lat, lon) => {
@@ -140,7 +141,7 @@
         let closestStation = null;
         let minDistance = Infinity;
         
-        if (userLocation) {
+        if (lat && lon) {
           allStations.forEach(station => {
             if (station.latitude && station.longitude) {
               const stationLat = parseFloat(station.latitude.replace(',', '.'));
@@ -191,7 +192,7 @@
           humidity: Math.round(Math.random() * 30 + 50),
           description: ['Słonecznie', 'Częściowo pochmurnie', 'Deszczowo', 'Mgła'][Math.floor(Math.random() * 4)],
           icon: ['☀️', '⛅', '🌧️', '🌫️'][Math.floor(Math.random() * 4)],
-          city: userLocation ? `Twoja okolica` : 'Warszawa',
+          city: lat && lon ? `Twoja okolica` : 'Warszawa',
           forecast: [
             { day: 'Jutro', temp: Math.round(Math.random() * 15 + 5), icon: '⛅' },
             { day: 'Pojutrze', temp: Math.round(Math.random() * 15 + 5), icon: '🌧️' },
@@ -412,13 +413,45 @@
       await fetchNews();
     };
 
-    // Funkcja do ręcznego odświeżania pogody
+    // POPRAWIONA FUNKCJA: Odświeżanie pogody z aktualną lokalizacją
     const refreshWeatherManually = async () => {
       addNotification('Odświeżam pogodę...');
-      if (userLocation) {
-        await fetchWeather(userLocation.latitude, userLocation.longitude);
-      } else {
-        getUserLocation();
+      
+      try {
+        // Sprawdź status pozwolenia na lokalizację
+        if (navigator.permissions && navigator.permissions.query) {
+          const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+          
+          if (permissionStatus.state === 'granted') {
+            // Pozwolenie jest udzielone, pobierz aktualną lokalizację
+            await getUserLocation();
+          } else if (permissionStatus.state === 'prompt') {
+            // Użytkownik nie zdecydował, zapytaj ponownie
+            setShowLocationPrompt(true);
+            await getUserLocation();
+          } else {
+            // Pozwolenie odrzucone, użyj ostatniej lokalizacji lub domyślnej
+            if (userLocation) {
+              await fetchWeather(userLocation.latitude, userLocation.longitude);
+            } else {
+              await fetchWeather(52.2297, 21.0122); // Warszawa
+            }
+          }
+        } else {
+          // Przeglądarka nie wspiera API permissions, spróbuj pobrać lokalizację
+          if (navigator.geolocation) {
+            await getUserLocation();
+          } else {
+            await fetchWeather(52.2297, 21.0122);
+          }
+        }
+      } catch (error) {
+        console.error('Błąd odświeżania pogody:', error);
+        if (userLocation) {
+          await fetchWeather(userLocation.latitude, userLocation.longitude);
+        } else {
+          await fetchWeather(52.2297, 21.0122);
+        }
       }
     };
 
@@ -448,29 +481,82 @@
       setCurrentFunFact(facts[Math.floor(Math.random() * facts.length)]);
     };
 
-    // Funkcja do uzyskania lokalizacji użytkownika
+    // POPRAWIONA FUNKCJA: Uzyskanie lokalizacji użytkownika z lepszą obsługą błędów
     const getUserLocation = () => {
-      if (!navigator.geolocation) {
-        fetchWeather(52.2297, 21.0122); // Domyślnie Warszawa
-        return;
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Twoja przeglądarka nie wspiera geolokalizacji'));
+          return;
+        }
+        
+        setShowLocationPrompt(true);
+        
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            setUserLocation({ latitude, longitude });
+            
+            // Zapisz lokalizację w localStorage
+            localStorage.setItem('seniorEasy_userLocation', JSON.stringify({ latitude, longitude }));
+            
+            // Pobierz pogodę dla tej lokalizacji
+            await fetchWeather(latitude, longitude);
+            
+            setShowLocationPrompt(false);
+            setLocationPermission('granted');
+            addNotification(`Pobrano pogodę dla Twojej lokalizacji`);
+            resolve({ latitude, longitude });
+          },
+          (error) => {
+            console.error('Błąd geolokalizacji:', error);
+            
+            // Sprawdź czy mamy zapisaną lokalizację
+            const savedLocation = localStorage.getItem('seniorEasy_userLocation');
+            if (savedLocation) {
+              const { latitude, longitude } = JSON.parse(savedLocation);
+              setUserLocation({ latitude, longitude });
+              fetchWeather(latitude, longitude);
+              addNotification('Używam ostatniej zapisanej lokalizacji');
+            } else {
+              fetchWeather(52.2297, 21.0122); // Domyślnie Warszawa
+              addNotification('Używam domyślnej lokalizacji (Warszawa)');
+            }
+            
+            setShowLocationPrompt(false);
+            setLocationPermission('denied');
+            reject(error);
+          },
+          { 
+            enableHighAccuracy: true, 
+            timeout: 10000, 
+            maximumAge: 300000 // 5 minut - użyj cache jeśli nie starsze niż 5 min
+          }
+        );
+      });
+    };
+
+    // Funkcja do sprawdzenia statusu pozwolenia na lokalizację
+    const checkLocationPermission = async () => {
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+          setLocationPermission(permissionStatus.state);
+          
+          // Jeśli pozwolenie jest udzielone, pobierz lokalizację
+          if (permissionStatus.state === 'granted' && !userLocation) {
+            const savedLocation = localStorage.getItem('seniorEasy_userLocation');
+            if (savedLocation) {
+              const { latitude, longitude } = JSON.parse(savedLocation);
+              setUserLocation({ latitude, longitude });
+              fetchWeather(latitude, longitude);
+            } else {
+              getUserLocation();
+            }
+          }
+        } catch (error) {
+          console.error('Błąd sprawdzania pozwolenia:', error);
+        }
       }
-      
-      setShowLocationPrompt(true);
-      
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation({ latitude, longitude });
-          fetchWeather(latitude, longitude);
-          setShowLocationPrompt(false);
-        },
-        (error) => {
-          console.error('Błąd geolokalizacji:', error);
-          fetchWeather(52.2297, 21.0122); // Domyślnie Warszawa
-          setShowLocationPrompt(false);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-      );
     };
 
     // Załaduj dane z localStorage
@@ -484,6 +570,7 @@
         const savedCareMode = localStorage.getItem('seniorEasy_careMode');
         const savedNews = localStorage.getItem('seniorEasy_news');
         const savedWeather = localStorage.getItem('seniorEasy_weather');
+        const savedLocation = localStorage.getItem('seniorEasy_userLocation');
         
         if (savedMeds) {
           setMedications(JSON.parse(savedMeds));
@@ -541,6 +628,11 @@
           setWeather(JSON.parse(savedWeather));
         }
         
+        if (savedLocation) {
+          const { latitude, longitude } = JSON.parse(savedLocation);
+          setUserLocation({ latitude, longitude });
+        }
+        
       } catch (error) {
         console.error('Błąd ładowania danych z localStorage:', error);
         setMedications([
@@ -583,14 +675,34 @@
         fetchNews();
       }
       
-      // 6. Pobierz pogodę (tylko jeśli nie ma w cache)
+      // 6. Sprawdź status pozwolenia na lokalizację
+      checkLocationPermission();
+      
+      // 7. Jeśli nie ma pogody, spróbuj pobrać
       if (!weather) {
         setTimeout(() => {
-          getUserLocation();
-        }, 2000);
+          if (!userLocation) {
+            // Sprawdź czy mamy zapisaną lokalizację
+            const savedLocation = localStorage.getItem('seniorEasy_userLocation');
+            if (savedLocation) {
+              const { latitude, longitude } = JSON.parse(savedLocation);
+              setUserLocation({ latitude, longitude });
+              fetchWeather(latitude, longitude);
+            } else {
+              // Poczekaj chwilę zanim zapytasz o lokalizację
+              setTimeout(() => {
+                if (locationPermission !== 'denied') {
+                  getUserLocation();
+                } else {
+                  fetchWeather(52.2297, 21.0122);
+                }
+              }, 2000);
+            }
+          }
+        }, 1000);
       }
 
-      // 7. Odświeżaj ciekawostkę co godzinę
+      // 8. Odświeżaj ciekawostkę co godzinę
       const factInterval = setInterval(() => {
         if (funFacts.length > 0) {
           const randomIndex = Math.floor(Math.random() * funFacts.length);
@@ -598,15 +710,17 @@
         }
       }, 3600000);
 
-      // 8. Odświeżaj wiadomości co 30 minut
+      // 9. Odświeżaj wiadomości co 30 minut
       const newsInterval = setInterval(() => {
         fetchNews();
       }, 30 * 60 * 1000);
 
-      // 9. Odświeżaj pogodę co godzinę
+      // 10. Odświeżaj pogodę co godzinę (tylko jeśli mamy lokalizację)
       const weatherInterval = setInterval(() => {
         if (userLocation) {
           fetchWeather(userLocation.latitude, userLocation.longitude);
+        } else if (locationPermission === 'granted') {
+          getUserLocation();
         }
       }, 60 * 60 * 1000);
 
@@ -616,7 +730,7 @@
         clearInterval(newsInterval);
         clearInterval(weatherInterval);
       };
-    }, [userLocation, funFacts.length]);
+    }, [userLocation, funFacts.length, locationPermission]);
 
     // Zapisywanie danych do localStorage
     useEffect(() => { 
@@ -648,6 +762,13 @@
     useEffect(() => { 
       localStorage.setItem('seniorEasy_careMode', careMode.toString());
     }, [careMode]);
+
+    // Zapisz lokalizację gdy się zmieni
+    useEffect(() => {
+      if (userLocation) {
+        localStorage.setItem('seniorEasy_userLocation', JSON.stringify(userLocation));
+      }
+    }, [userLocation]);
 
     useEffect(() => {
       const handleBeforeInstallPrompt = (e) => { 
@@ -1097,6 +1218,7 @@
         localStorage.removeItem('seniorEasy_lastNewsFetch');
         localStorage.removeItem('seniorEasy_weather');
         localStorage.removeItem('seniorEasy_lastWeatherFetch');
+        localStorage.removeItem('seniorEasy_userLocation');
         
         setMedications([]); 
         setFamilyContacts([]); 
@@ -1104,6 +1226,7 @@
         setNotifications([]); 
         setNews([]);
         setWeather(null);
+        setUserLocation(null);
         setCareMode(true);
         
         setEmergencySettings({
@@ -1137,12 +1260,23 @@
       return React.createElement('div', { className: 'bg-gradient-to-r from-blue-400 to-blue-600 text-white p-4 md:p-6 rounded-3xl shadow-xl mb-4' },
         React.createElement('div', { className: 'flex justify-between items-center mb-4' },
           React.createElement('h3', { className: 'text-2xl md:text-3xl font-bold' }, '🌤️ Pogoda'),
-          React.createElement('button', {
-            onClick: refreshWeatherManually,
-            className: 'bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-2xl font-bold flex items-center',
-            disabled: weatherLoading
-          },
-            weatherLoading ? 'Ładowanie...' : '🔄 Odśwież'
+          React.createElement('div', { className: 'flex space-x-2' },
+            locationPermission === 'granted' && userLocation && 
+            React.createElement('button', {
+              onClick: () => {
+                addNotification('Pobieram aktualną lokalizację...');
+                getUserLocation();
+              },
+              className: 'bg-white text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-2xl font-bold flex items-center text-sm',
+              title: 'Pobierz aktualną lokalizację'
+            }, '📍'),
+            React.createElement('button', {
+              onClick: refreshWeatherManually,
+              className: 'bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-2xl font-bold flex items-center',
+              disabled: weatherLoading
+            },
+              weatherLoading ? 'Ładowanie...' : '🔄 Odśwież'
+            )
           )
         ),
         
@@ -1157,7 +1291,9 @@
               React.createElement('div', null,
                 React.createElement('div', { className: 'text-5xl md:text-6xl font-bold mb-2' }, `${weather.temperature}°C`),
                 React.createElement('div', { className: 'text-xl' }, weather.city),
-                React.createElement('div', { className: 'text-lg opacity-90' }, `Odczuwalna: ${weather.feels_like}°C`)
+                React.createElement('div', { className: 'text-lg opacity-90' }, `Odczuwalna: ${weather.feels_like}°C`),
+                locationPermission === 'granted' && userLocation &&
+                React.createElement('div', { className: 'text-sm opacity-75 mt-1' }, '📍 Twoja lokalizacja')
               ),
               React.createElement('div', { className: 'text-center' },
                 React.createElement('div', { className: 'weather-icon' }, weather.icon),
@@ -1193,9 +1329,12 @@
           React.createElement('div', { className: 'text-center py-6' },
             React.createElement('p', { className: 'text-xl mb-4' }, 'Nie udało się pobrać pogody'),
             React.createElement('button', {
-              onClick: getUserLocation,
+              onClick: () => {
+                addNotification('Pobieram Twoją lokalizację...');
+                getUserLocation();
+              },
               className: 'bg-white text-blue-600 px-4 py-2 rounded-2xl font-bold text-sm'
-            }, 'Spróbuj ponownie')
+            }, '📍 Użyj mojej lokalizacji')
           )
       );
     };
@@ -1981,6 +2120,7 @@
             React.createElement('p', null, React.createElement('strong', null, 'Typ:'), ' Progressive Web App'),
             React.createElement('p', null, React.createElement('strong', null, 'Wsparcie:'), ' +480 800 800'),
             React.createElement('p', null, React.createElement('strong', null, 'Dane:'), ' Wszystkie dane są zapisywane lokalnie w przeglądarce'),
+            React.createElement('p', null, React.createElement('strong', null, 'Lokalizacja:'), ' ' + (locationPermission === 'granted' ? '✓ Pozwolenie udzielone' : locationPermission === 'denied' ? '✗ Pozwolenie odrzucone' : '⏳ Oczekiwanie')),
             React.createElement('p', { className: 'text-base md:text-lg text-gray-600 mt-4' },
               'Aplikacja działa offline i może być zainstalowana na urządzeniu mobilnym lub komputerze.'
             )
@@ -2360,7 +2500,7 @@
       renderEmergencySettings(),
       renderNotifyDialog(),
 
-      // PROMPT DLA LOKALIZACJI
+      // POPRAWIONY PROMPT DLA LOKALIZACJI
       showLocationPrompt && React.createElement('div', { 
         className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'
       },
@@ -2368,18 +2508,32 @@
           className: 'bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl'
         },
           React.createElement('h3', { className: 'text-2xl font-bold text-center mb-4' }, '🌍 Lokalizacja'),
-          React.createElement('p', { className: 'text-center mb-6' }, 'Aplikacja prosi o dostęp do Twojej lokalizacji, aby wyświetlić aktualną pogodę.'),
+          React.createElement('p', { className: 'text-center mb-6' }, 'Aplikacja prosi o dostęp do Twojej lokalizacji, aby wyświetlić aktualną pogodę dla Twojej okolicy.'),
           React.createElement('div', { className: 'text-center py-4' },
             React.createElement('div', { className: 'loading-spinner mx-auto mb-4' }),
             React.createElement('p', null, 'Oczekiwanie na pozwolenie...')
           ),
-          React.createElement('button', {
-            onClick: () => {
-              setShowLocationPrompt(false);
-              fetchWeather(52.2297, 21.0122);
-            },
-            className: 'w-full bg-gray-400 hover:bg-gray-500 text-white p-4 rounded-2xl font-bold'
-          }, 'Użyj domyślnej lokalizacji (Warszawa)')
+          React.createElement('div', { className: 'grid grid-cols-2 gap-3 mt-4' },
+            React.createElement('button', {
+              onClick: () => {
+                setShowLocationPrompt(false);
+                fetchWeather(52.2297, 21.0122);
+                addNotification('Używam domyślnej lokalizacji (Warszawa)');
+              },
+              className: 'w-full bg-gray-400 hover:bg-gray-500 text-white p-4 rounded-2xl font-bold'
+            }, '🚫 Pomiń'),
+            React.createElement('button', {
+              onClick: async () => {
+                try {
+                  await getUserLocation();
+                } catch (error) {
+                  setShowLocationPrompt(false);
+                  fetchWeather(52.2297, 21.0122);
+                }
+              },
+              className: 'w-full bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-2xl font-bold'
+            }, '📍 Zezwól')
+          )
         )
       ),
 
