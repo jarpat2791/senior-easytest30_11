@@ -2,31 +2,132 @@
   "name": "Senior-Easy - Aplikacja dla Seniorów",
   "short_name": "Senior-Easy",
   "description": "Aplikacja dla seniorów ułatwiająca kontakt z rodziną i zarządzanie lekami",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#3B82F6",
   "theme_color": "#3B82F6",
-  "orientation": "any",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;rect width='100' height='100' rx='20' fill='%233B82F6'/&gt;&lt;text x='50' y='70' font-size='60' text-anchor='middle' fill='white'&gt;💊&lt;/text&gt;&lt;/svg&gt;",
+      "src": "icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;rect width='100' height='100' rx='20' fill='%233B82F6'/&gt;&lt;text x='50' y='70' font-size='60' text-anchor='middle' fill='white'&gt;💊&lt;/text&gt;&lt;/svg&gt;",
+      "src": "icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": [
-    "health",
-    "medical",
-    "lifestyle"
-  ],
+  "categories": ["health", "medical", "lifestyle", "productivity", "utilities"],
   "lang": "pl-PL",
-  "dir": "ltr"
+  "dir": "ltr",
+  "shortcuts": [
+    {
+      "name": "Leki",
+      "short_name": "Leki",
+      "description": "Sprawdź przypomnienia o lekach",
+      "url": "/#medications",
+      "icons": [
+        {
+          "src": "icons/medicine-icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Kontakty",
+      "short_name": "Kontakty",
+      "description": "Kontakty z rodziną",
+      "url": "/#contacts",
+      "icons": [
+        {
+          "src": "icons/contact-icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Pogoda",
+      "short_name": "Pogoda",
+      "description": "Sprawdź aktualną pogodę",
+      "url": "/#home",
+      "icons": [
+        {
+          "src": "icons/weather-icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/home.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Ekran główny Senior-Easy"
+    },
+    {
+      "src": "screenshots/medications.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Zarządzanie lekami"
+    },
+    {
+      "src": "screenshots/contacts.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Kontakty rodzinne"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "features": [
+    "Zarządzanie lekami",
+    "Kontakty z rodziną",
+    "Przycisk SOS",
+    "Aktualności",
+    "Pogoda",
+    "Ciekawostki",
+    "Tryb opieki rodzinnej"
+  ]
 }
